@@ -1,0 +1,33 @@
+@page "{id:int}"
+@model Key.Du.Pay.UserInterface.Pages.ResponsavelFinanceiro.EditModel
+@{
+    ViewData["Title"] = "Editar responsável";
+}
+<div class="card shadow-sm" style="max-width: 640px;">
+    <div class="card-header bg-white">
+        <h1 class="h5 mb-0">Editar responsável</h1>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            <input type="hidden" asp-for="Input.Id" />
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="mb-3">
+                <label class="form-label" asp-for="Input.Descricao"></label>
+                <input class="form-control" asp-for="Input.Descricao" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" asp-for="Input.Adimplente"></label>
+                <select class="form-select" asp-for="Input.Adimplente" asp-items="Html.GetEnumSelectList<EnumAdimplencia>()"></select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" asp-for="Input.TipoUsuario"></label>
+                <select class="form-select" asp-for="Input.TipoUsuario" asp-items="Html.GetEnumSelectList<EnumTipoUsuario>()"></select>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <a class="btn btn-outline-secondary" asp-page="Index">Cancelar</a>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

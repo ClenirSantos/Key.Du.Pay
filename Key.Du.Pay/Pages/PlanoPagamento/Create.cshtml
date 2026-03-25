@@ -1,0 +1,182 @@
+@page
+@model Key.Du.Pay.UserInterface.Pages.PlanoPagamento.CreateModel
+@{
+    ViewData["Title"] = "Novo plano de pagamento";
+}
+<div class="card shadow-sm">
+    <div class="card-header bg-white">
+        <h1 class="h5 mb-0">Novo plano de pagamento</h1>
+        <p class="text-muted small mb-0">Preencha os dados das cobranças. Adicione ou remova linhas conforme necessário.</p>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Input.ResponsavelId"></label>
+                    <select class="form-select" asp-for="Input.ResponsavelId" asp-items="Model.Responsaveis"></select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Input.CentroDeCusto"></label>
+                    <select class="form-select" asp-for="Input.CentroDeCusto" asp-items="Model.Centros"></select>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h6 mb-0">Cobranças</h2>
+                <button type="button" class="btn btn-sm btn-success" id="btnAddRow">
+                    <i class="bi bi-plus-circle"></i> Adicionar Cobrança
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle" id="cobrancasTable">
+                    <thead>
+                        <tr>
+                            <th>Valor</th>
+                            <th>Vencimento</th>
+                            <th>Método</th>
+                            <th>Descrição (opcional)</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Input.Cobrancas.Count; i++)
+                        {
+                            <tr>
+                                <td>
+                                    <input class="form-control form-control-sm dinheiro text-end" asp-for="Input.Cobrancas[i].Valor" type="text" />
+                                </td>
+                                <td>
+                                    <input class="form-control form-control-sm" asp-for="Input.Cobrancas[i].DataVencimento" type="date" />
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm" asp-for="Input.Cobrancas[i].MetodoPagamento" asp-items="Html.GetEnumSelectList<EnumMetodoPagamento>()"></select>
+                                </td>
+                                <td>
+                                    <input class="form-control form-control-sm" asp-for="Input.Cobrancas[i].Descricao" />
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" title="Remover" onclick="removeRow(this)">Remover</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar plano</button>
+            <a class="btn btn-outline-secondary" asp-page="Index">Cancelar</a>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Fix for jQuery Validate intercepting the BRL format
+        if ($.validator) {
+            $.validator.methods.number = function (value, element) {
+                var val = value.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+                return this.optional(element) || !isNaN(parseFloat(val));
+            };
+            $.validator.methods.range = function (value, element, param) {
+                var val = parseFloat(value.replace('R$ ', '').replace(/\./g, '').replace(',', '.'));
+                return this.optional(element) || (val >= param[0] && val <= param[1]);
+            };
+        }
+        function parseToNumber(value) {
+            if (!value) return 0;
+            value = value.toString().replace('R$ ', '').trim();
+            if (value.indexOf(',') > -1 && value.indexOf('.') > -1) {
+                value = value.replace(/\./g, '').replace(',', '.');
+            } else if (value.indexOf(',') > -1) {
+                value = value.replace(',', '.');
+            }
+            var num = parseFloat(value);
+            return isNaN(num) ? 0 : num;
+        }
+
+        function formatDinheiro(value) {
+            var num = parseToNumber(value);
+            var result = num.toFixed(2).replace('.', ',');
+            return "R$ " + result.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+        }
+
+        document.getElementById('cobrancasTable').addEventListener('blur', function(e) {
+            if (e.target.classList.contains('dinheiro')) {
+                e.target.value = formatDinheiro(e.target.value);
+            }
+        }, true);
+
+        document.getElementById('cobrancasTable').addEventListener('focus', function(e) {
+            if (e.target.classList.contains('dinheiro')) {
+                var val = e.target.value.replace('R$ ', '').replace(/\./g, '').trim();
+                // Optionally strip the ',00' when focused for easier typing
+                if (val.endsWith(',00')) {
+                    val = val.substring(0, val.length - 3);
+                }
+                e.target.value = val;
+            }
+        }, true);
+
+        // Initialize existing rows
+        document.querySelectorAll('.dinheiro').forEach(function(input) {
+            if (input.value) {
+                input.value = formatDinheiro(input.value);
+            }
+        });
+
+        document.querySelector('form').addEventListener('submit', function() {
+            document.querySelectorAll('.dinheiro').forEach(function(input) {
+                var num = parseToNumber(input.value);
+                input.value = num.toFixed(2).replace('.', ',');
+            });
+        });
+
+        document.getElementById('btnAddRow').addEventListener('click', function() {
+            var tbody = document.querySelector('#cobrancasTable tbody');
+            var rows = tbody.querySelectorAll('tr');
+            if(rows.length === 0) return;
+            
+            var lastRow = rows[rows.length - 1];
+            var newRow = lastRow.cloneNode(true);
+            
+            var inputs = newRow.querySelectorAll('input');
+            inputs.forEach(input => {
+                if (input.classList.contains('dinheiro')) {
+                    input.value = 'R$ 0,00';
+                }
+                else if(input.type === 'date') input.value = '';
+                else input.value = '';
+            });
+            var selects = newRow.querySelectorAll('select');
+            selects.forEach(select => { select.selectedIndex = 0; });
+            
+            tbody.appendChild(newRow);
+            reindexRows();
+        });
+
+        function removeRow(btn) {
+            var row = btn.closest('tr');
+            var tbody = row.closest('tbody');
+            if (tbody.querySelectorAll('tr').length > 1) {
+                row.remove();
+                reindexRows();
+            } else {
+                alert('É necessário ter ao menos uma linha de cobrança.');
+            }
+        }
+
+        function reindexRows() {
+            var rows = document.querySelectorAll('#cobrancasTable tbody tr');
+            rows.forEach((row, index) => {
+                var elements = row.querySelectorAll('input, select');
+                elements.forEach(el => {
+                    if(el.name) {
+                        el.name = el.name.replace(/\[\d+\]/, '[' + index + ']');
+                    }
+                    if(el.id) {
+                        el.id = el.id.replace(/_\d+__/, '_' + index + '__');
+                    }
+                });
+            });
+        }
+    </script>
+}

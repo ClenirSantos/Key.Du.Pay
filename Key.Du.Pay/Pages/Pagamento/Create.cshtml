@@ -1,0 +1,287 @@
+@page
+@model Key.Du.Pay.UserInterface.Pages.Pagamento.CreateModel
+@{
+    ViewData["Title"] = "Registrar pagamento";
+}
+<div class="row gx-4">
+    <!-- Left Column: Form & Details -->
+    <div class="col-md-7 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h1 class="h5 mb-0">Registrar pagamento</h1>
+                <p class="text-muted small mb-0 mt-1">
+                    Valor igual ao saldo da cobrança → quitada (<strong>Paga</strong>). Valor menor → <strong>Paga parcialmente</strong> e o responsável financeiro passa a <strong>risco de inadimplência</strong>.
+                </p>
+            </div>
+
+            @if (Model.CobrancaDetalhe != null)
+            {
+                <div class="card-body border-bottom bg-light bg-opacity-50">
+                    <h6 class="fw-bold mb-3">Detalhes da Cobrança #@Model.CobrancaDetalhe.Id</h6>
+                    <div class="row g-3 small">
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block">Responsável Financeiro:</span>
+                            <span class="fw-semibold">@Model.CobrancaDetalhe.PlanoPagamento?.ResponsavelFinanceiro.Descricao</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block">Valor Original:</span>
+                            <span class="fw-semibold text-primary">@Model.CobrancaDetalhe.Valor.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block">Plano de Pagamento:</span>
+                            <span class="fw-semibold">#@Model.CobrancaDetalhe.PlanoPagamentoID</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block">Vencimento:</span>
+                            <span class="fw-semibold @(Model.CobrancaDetalhe.DataVencimento < DateTime.UtcNow.Date ? "text-danger" : "")">
+                                @Model.CobrancaDetalhe.DataVencimento.ToLocalTime().ToString("d")
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="card-body">
+                <form method="get" id="formFiltros">
+                    <!-- Step 1: Responsável -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="ResponsavelId">Responsável Financeiro</label>
+                        <select class="form-select" name="ResponsavelId" id="ResponsavelId"
+                                onchange="this.form.submit()">
+                            <option value="0">— Selecione o responsável —</option>
+                            @foreach (var r in Model.Responsaveis)
+                            {
+                                if (Model.ResponsavelId == r.Id)
+                                {
+                                    <option value="@r.Id" selected="selected">@r.Descricao</option>
+                                }
+                                else
+                                {
+                                    <option value="@r.Id">@r.Descricao</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Step 2: Plano (aparece após responsável selecionado) -->
+                    @if (Model.ResponsavelId > 0)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="PlanoId">Plano de Pagamento</label>
+                            <select class="form-select" name="PlanoId" id="PlanoId"
+                                    onchange="this.form.submit()">
+                                <option value="0">— Selecione o plano —</option>
+                                @foreach (var p in Model.Planos)
+                                {
+                                    if (Model.PlanoId == p.Id)
+                                    {
+                                        <option value="@p.Id" selected="selected">#@p.Id — @p.CentroCusto.Descricao</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@p.Id">#@p.Id — @p.CentroCusto.Descricao</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    }
+
+                    <!-- Step 3: Cobrança (aparece após plano selecionado) -->
+                    @if (Model.PlanoId > 0)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="cobrancaSelect">Cobrança</label>
+                            @if (Model.Opcoes.Any())
+                            {
+                                <select class="form-select" name="cobrancaId" id="cobrancaSelect"
+                                        onchange="this.form.submit()">
+                                    <option value="0">— Selecione a cobrança —</option>
+                                    @foreach (var o in Model.Opcoes)
+                                    {
+                                        if (Model.Input.CobrancaID == o.Id)
+                                        {
+                                            <option value="@o.Id" data-saldo="@o.Saldo.ToString(System.Globalization.CultureInfo.InvariantCulture)" selected="selected">@o.Texto</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@o.Id" data-saldo="@o.Saldo.ToString(System.Globalization.CultureInfo.InvariantCulture)">@o.Texto</option>
+                                        }
+                                    }
+                                </select>
+                                <div class="form-text">Somente cobranças em aberto são exibidas.</div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info mb-0 py-2 small">
+                                    Nenhuma cobrança em aberto para este plano.
+                                </div>
+                            }
+                        </div>
+                    }
+                </form>
+
+                <!-- Payment form (POST) — só aparece com cobrança selecionada -->
+                @if (Model.Input.CobrancaID > 0)
+                {
+                    <form method="post" id="formPagamento">
+                        <input type="hidden" name="Input.CobrancaID" value="@Model.Input.CobrancaID" />
+                        <input type="hidden" name="ResponsavelId" value="@Model.ResponsavelId" />
+                        <input type="hidden" name="PlanoId" value="@Model.PlanoId" />
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="form-check mb-3 p-3 bg-light border rounded">
+                            <input class="form-check-input ms-1 mt-2" type="checkbox" asp-for="PagamentoIntegral" id="chkIntegral" />
+                            <label class="form-check-label ms-2 fw-semibold" for="chkIntegral">
+                                Pagar saldo integralmente
+                                <span class="d-block fw-normal text-muted small">Preencherá automaticamente o valor com o saldo restante.</span>
+                            </label>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" asp-for="Input.Valor"></label>
+                            <input class="form-control form-control-lg text-success fw-bold" asp-for="Input.Valor"
+                                   type="number" step="0.01" min="0.01" id="valorInput" />
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold" asp-for="Input.DataPagamento"></label>
+                            <input class="form-control" asp-for="Input.DataPagamento" type="datetime-local" />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">Confirmar Pagamento</button>
+                    </form>
+                }
+                <a class="btn btn-light w-100 text-secondary mt-2" asp-page="Index">Voltar para a lista</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Visuals & History -->
+    <div class="col-md-5 mb-4">
+        @if (Model.CobrancaDetalhe != null)
+        {
+            <div class="card shadow-sm mb-4 border-0 bg-light">
+                <div class="card-body text-center p-4">
+                    <h6 class="text-uppercase text-muted fw-bold mb-3 ls-1">Instruções de Pagamento</h6>
+                    <div class="d-inline-flex align-items-center justify-content-center mb-3 text-primary">
+                        @if (Model.CobrancaDetalhe.MetodoPagamento == Key.Du.Pay.CrossCutting.Enum.EnumMetodoPagamento.Pix)
+                        {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-qr-code-scan me-2" viewBox="0 0 16 16">
+                              <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0v-3Zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5ZM.5 15a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 0 1 0V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5ZM15 15h-2.5a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 1 0v3a.5.5 0 0 1-.5.5Z"/>
+                              <path d="M3 3h10v10H3V3Zm2 2v6h6V5H5Z"/>
+                            </svg>
+                            <span class="fs-5 fw-bold text-dark">Pix QrCode</span>
+                        }
+                        else
+                        {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-upc-scan me-2" viewBox="0 0 16 16">
+                              <path d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1h-3zM11 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 16 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5zM.5 11a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 14.5v-3a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5zM3 4.5a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0v-7zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0v-7zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0v-7zm2 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-7zm3 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0v-7z"/>
+                            </svg>
+                            <span class="fs-5 fw-bold text-dark">Boleto Bancário</span>
+                        }
+                    </div>
+
+                    <div class="bg-white p-4 rounded shadow-sm border mb-3 d-flex align-items-center justify-content-center mx-auto" style="min-height: 180px; max-width: 280px; overflow:hidden">
+                        @if (Model.CobrancaDetalhe.MetodoPagamento == Key.Du.Pay.CrossCutting.Enum.EnumMetodoPagamento.Pix)
+                        {
+                            <!-- Fake Pix QR Code Array -->
+                            <div style="display:grid; grid-template-columns: repeat(10, 15px); grid-gap: 2px;">
+                                @for(int i=0; i<100; i++)
+                                {
+                                    var rnd = new Random(i * Model.CobrancaDetalhe.Id).Next(0, 2);
+                                    <div style="width:15px; height:15px; background-color: @(rnd == 1 ? "#000" : "transparent")"></div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Fake Barcode Array -->
+                            <div class="d-flex w-100 justify-content-center pe-2 ps-2" style="height: 60px;">
+                                @for(int i=0; i<45; i++)
+                                {
+                                    var rnd = new Random(i * Model.CobrancaDetalhe.Id).Next(1, 5);
+                                    <div style="width:@(rnd)px; height: 100%; background-color: #000; margin-right: 2px;"></div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="bg-white border rounded p-2 text-wrap user-select-all text-break font-monospace small">
+                        @Model.CobrancaDetalhe.CodigoPagamento
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>Histórico de Pagamentos</h6>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.HistoricoPagamentos.Any())
+                    {
+                        <ul class="list-group list-group-flush small">
+                            @foreach (var p in Model.HistoricoPagamentos)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                    <div>
+                                        <span class="d-block fw-semibold text-dark">Pagamento #@p.Id</span>
+                                        <span class="text-muted">@p.DataPagamento.ToLocalTime().ToString("g")</span>
+                                    </div>
+                                    <span class="badge bg-success rounded-pill px-3 py-2 fs-6">
+                                        @p.Valor.ToString("C", new System.Globalization.CultureInfo("pt-BR"))
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <div class="p-4 text-center text-muted">
+                            <p class="mb-0 small">Nenhum pagamento registrado ainda para esta cobrança.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted bg-light rounded border p-5 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-receipt mb-3 opacity-50" viewBox="0 0 16 16">
+                  <path d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z"/>
+                  <path d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"/>
+                </svg>
+                <h5>Detalhes Ocultos</h5>
+                <p class="small">Selecione um responsável, depois um plano e por fim uma cobrança para visualizar as opções de pagamento e o histórico.</p>
+            </div>
+        }
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var chk = document.getElementById('chkIntegral');
+            var valor = document.getElementById('valorInput');
+
+            if (!chk || !valor) return;
+
+            // Lê o saldo da cobrança selecionada a partir do select de cobranças
+            function saldoDaSelecao() {
+                var sel = document.getElementById('cobrancaSelect');
+                if (!sel) return null;
+                var opt = sel.options[sel.selectedIndex];
+                if (!opt || !opt.getAttribute('data-saldo')) return null;
+                return parseFloat(opt.getAttribute('data-saldo'));
+            }
+
+            function aplicarIntegral() {
+                if (!chk.checked) return;
+                var s = saldoDaSelecao();
+                if (s != null && !isNaN(s)) valor.value = Math.max(0.01, s).toFixed(2);
+            }
+
+            chk.addEventListener('change', aplicarIntegral);
+
+            valor.addEventListener('input', function () {
+                if (chk.checked) chk.checked = false;
+            });
+        })();
+    </script>
+}

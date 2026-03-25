@@ -1,0 +1,68 @@
+@page
+@model Key.Du.Pay.UserInterface.Pages.Cobranca.IndexModel
+@{
+    ViewData["Title"] = "Cobranças";
+}
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h1 class="h5 mb-0">Cobranças</h1>
+        <a class="btn btn-primary btn-sm" asp-page="Create">Nova cobrança</a>
+    </div>
+    <div class="card-body p-0">
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success m-3 mb-0">@TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger m-3 mb-0">@TempData["Error"]</div>
+        }
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle small">
+                <thead class="table-light">
+                    <tr>
+                        <th>Id</th>
+                        <th>Plano</th>
+                        <th>Descrição</th>
+                        <th class="text-end">Valor</th>
+                        <th>Vencimento</th>
+                        <th>Método</th>
+                        <th>Status</th>
+                        <th>Vencida?</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Itens)
+                    {
+                        <tr>
+                            <td>@item.Id</td>
+                            <td>#@item.PlanoPagamentoID</td>
+                            <td>@item.Descricao</td>
+                            <td class="text-end">@item.Valor.ToString("N2")</td>
+                            <td>@item.DataVencimento.ToLocalTime().ToString("d")</td>
+                            <td>@item.MetodoPagamento</td>
+                            <td>@item.Status</td>
+                            <td>@(item.EstaVencida ? "Sim" : "Não")</td>
+                            <td class="text-end d-flex gap-1 justify-content-end">
+                                @if (item.Status != Key.Du.Pay.CrossCutting.Enum.EnumCobrancaStatus.Cancelada && 
+                                     item.Status != Key.Du.Pay.CrossCutting.Enum.EnumCobrancaStatus.Paga)
+                                {
+                                    <form method="post" asp-page-handler="Cancelar" asp-route-id="@item.Id" style="display:inline;">
+                                        <button type="submit" class="btn btn-outline-warning btn-sm" onclick="return confirm('Tem certeza que deseja cancelar esta cobrança?');">Cancelar</button>
+                                    </form>
+                                    <a class="btn btn-success btn-sm" asp-page="/Pagamento/Create" asp-route-cobrancaId="@item.Id">Efetuar Pagamento</a>
+                                }
+                                else if (item.Status == Key.Du.Pay.CrossCutting.Enum.EnumCobrancaStatus.Paga || item.Status == Key.Du.Pay.CrossCutting.Enum.EnumCobrancaStatus.PagaParcialmente)
+                                {
+                                    <a class="btn btn-warning btn-sm" asp-page="/Pagamento/Create" asp-route-cobrancaId="@item.Id">Historico de Pagamento</a>
+                                }
+                                <a class="btn btn-outline-danger btn-sm" asp-page="Delete" asp-route-id="@item.Id">Excluir</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

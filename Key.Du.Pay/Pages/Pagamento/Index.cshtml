@@ -1,0 +1,48 @@
+@page
+@model Key.Du.Pay.UserInterface.Pages.Pagamento.IndexModel
+@{
+    ViewData["Title"] = "Pagamentos";
+}
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h1 class="h5 mb-0">Pagamentos</h1>
+        <a class="btn btn-primary btn-sm" asp-page="Create">Registrar pagamento</a>
+    </div>
+    <div class="card-body p-0">
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success m-3 mb-0">@TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger m-3 mb-0">@TempData["Error"]</div>
+        }
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Id</th>
+                        <th>Cobrança</th>
+                        <th class="text-end">Valor</th>
+                        <th>Data</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Itens)
+                    {
+                        <tr>
+                            <td>@item.Id</td>
+                            <td>#@item.CobrancaID</td>
+                            <td class="text-end">@item.Valor.ToString("N2")</td>
+                            <td>@item.DataPagamento.ToLocalTime().ToString("g")</td>
+                            <td class="text-end">
+                                <a class="btn btn-outline-danger btn-sm" asp-page="Delete" asp-route-id="@item.Id">Excluir</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,17 @@
+@page "{id:int}"
+@model Key.Du.Pay.UserInterface.Pages.ResponsavelFinanceiro.DeleteModel
+@{
+    ViewData["Title"] = "Excluir responsável";
+}
+<div class="card shadow-sm" style="max-width: 480px;">
+    <div class="card-header bg-white">
+        <h1 class="h5 mb-0 text-danger">Confirmar exclusão</h1>
+    </div>
+    <div class="card-body">
+        <p>Excluir o responsável <strong>@Model.Item?.Descricao</strong>?</p>
+        <form method="post">
+            <button type="submit" class="btn btn-danger">Excluir</button>
+            <a class="btn btn-outline-secondary" asp-page="Index">Cancelar</a>
+        </form>
+    </div>
+</div>

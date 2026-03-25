@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Key.Du.Pay.BusinessLogic/Key.Du.Pay.BusinessLogic.csproj" />
+  <Project Path="Key.Du.Pay.CrossCutting.DepencyInjection/Key.Du.Pay.CrossCutting.DepencyInjection.csproj" />
+  <Project Path="Key.Du.Pay.CrossCutting/Key.Du.Pay.CrossCutting.csproj" />
+  <Project Path="Key.Du.Pay.DataAccess/Key.Du.Pay.DataAccess.csproj" />
+  <Project Path="Key.Du.Pay/Key.Du.Pay.UserInterface.csproj" />
+</Solution>

@@ -1,0 +1,25 @@
+@page "{id:int}"
+@model Key.Du.Pay.UserInterface.Pages.CentroCusto.EditModel
+@{
+    ViewData["Title"] = "Editar centro de custo";
+}
+<div class="card shadow-sm" style="max-width: 480px;">
+    <div class="card-header bg-white">
+        <h1 class="h5 mb-0">Editar centro de custo</h1>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            <input type="hidden" asp-for="Input.Id" />
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="mb-3">
+                <label class="form-label" asp-for="Input.Descricao"></label>
+                <input class="form-control" asp-for="Input.Descricao" />
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <a class="btn btn-outline-secondary" asp-page="Index">Cancelar</a>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

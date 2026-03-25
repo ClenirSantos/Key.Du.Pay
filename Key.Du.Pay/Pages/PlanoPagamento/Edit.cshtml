@@ -1,0 +1,235 @@
+@page "{id:int}"
+@using Key.Du.Pay.CrossCutting.Enum
+@model Key.Du.Pay.UserInterface.Pages.PlanoPagamento.EditModel
+@{
+    ViewData["Title"] = "Editar plano";
+}
+<div class="card shadow-sm">
+    <div class="card-header bg-white">
+        <h1 class="h5 mb-0">Editar plano #@Model.Plano?.Id</h1>
+        <p class="text-muted small mb-0">Valor total atual: <strong>@Model.Plano?.ValorTotal.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</strong></p>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            <input type="hidden" asp-for="Input.Id" />
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Input.ResponsavelFinanceiroID">Responsável Financeiro</label>
+                    <select class="form-select" asp-for="Input.ResponsavelFinanceiroID" asp-items="Model.Responsaveis"></select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Input.CentroCustoID">Centro de Custo</label>
+                    <select class="form-select" asp-for="Input.CentroCustoID" asp-items="Model.Centros"></select>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h6 mb-0">Cobranças</h2>
+                <button type="button" class="btn btn-sm btn-success" id="btnAddRow">
+                    <i class="bi bi-plus-circle"></i> Adicionar Cobrança
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle" id="cobrancasTable">
+                    <thead>
+                        <tr>
+                            <th>Valor</th>
+                            <th>Vencimento</th>
+                            <th>Método</th>
+                            <th>Descrição (opcional)</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Input.Cobrancas.Count; i++)
+                        {
+                            var cob = Model.Input.Cobrancas[i];
+                            var isExisting = cob.Id > 0;
+                            var cancelledStyle = cob.Cancelada ? "opacity-50 text-decoration-line-through bg-light" : "";
+                            
+                            <tr class="@cancelledStyle cobranca-row">
+                                <input type="hidden" asp-for="Input.Cobrancas[i].Id" class="cob-id" />
+                                <input type="hidden" asp-for="Input.Cobrancas[i].Cancelada" class="cob-cancelada" />
+                                <input type="hidden" asp-for="Input.Cobrancas[i].Status" />
+                                
+                                <td>
+                                    <input class="form-control form-control-sm dinheiro text-end" asp-for="Input.Cobrancas[i].Valor" type="text" readonly="@isExisting" />
+                                </td>
+                                <td>
+                                    <input class="form-control form-control-sm" asp-for="Input.Cobrancas[i].DataVencimento" type="date" readonly="@isExisting" />
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm" asp-for="Input.Cobrancas[i].MetodoPagamento" asp-items="Html.GetEnumSelectList<EnumMetodoPagamento>()" readonly="@isExisting" style="@(isExisting ? "pointer-events: none;" : "")"></select>
+                                </td>
+                                <td>
+                                    <input class="form-control form-control-sm" asp-for="Input.Cobrancas[i].Descricao" readonly="@isExisting" />
+                                </td>
+                                <td>
+                                    @if(isExisting)
+                                    {
+                                        if(!cob.Cancelada)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-warning" title="Cancelar" onclick="cancelarRow(this)">Cancelar</button>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Cancelada</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Remover" onclick="removeRow(this)">Remover</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar plano</button>
+            <a class="btn btn-outline-secondary" asp-page="Index">Voltar</a>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Fix for jQuery Validate intercepting the BRL format
+        if ($.validator) {
+            $.validator.methods.number = function (value, element) {
+                var val = value.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+                return this.optional(element) || !isNaN(parseFloat(val));
+            };
+            $.validator.methods.range = function (value, element, param) {
+                var val = parseFloat(value.replace('R$ ', '').replace(/\./g, '').replace(',', '.'));
+                return this.optional(element) || (val >= param[0] && val <= param[1]);
+            };
+        }
+        function parseToNumber(value) {
+            if (!value) return 0;
+            value = value.toString().replace('R$ ', '').trim();
+            if (value.indexOf(',') > -1 && value.indexOf('.') > -1) {
+                value = value.replace(/\./g, '').replace(',', '.');
+            } else if (value.indexOf(',') > -1) {
+                value = value.replace(',', '.');
+            }
+            var num = parseFloat(value);
+            return isNaN(num) ? 0 : num;
+        }
+
+        function formatDinheiro(value) {
+            var num = parseToNumber(value);
+            var result = num.toFixed(2).replace('.', ',');
+            return "R$ " + result.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+        }
+
+        document.getElementById('cobrancasTable').addEventListener('blur', function(e) {
+            if (e.target.classList.contains('dinheiro') && !e.target.hasAttribute('readonly')) {
+                e.target.value = formatDinheiro(e.target.value);
+            }
+        }, true);
+
+        document.getElementById('cobrancasTable').addEventListener('focus', function(e) {
+            if (e.target.classList.contains('dinheiro') && !e.target.hasAttribute('readonly')) {
+                var val = e.target.value.replace('R$ ', '').replace(/\./g, '').trim();
+                if (val.endsWith(',00')) {
+                    val = val.substring(0, val.length - 3);
+                }
+                e.target.value = val;
+            }
+        }, true);
+
+        // Initialize existing rows
+        document.querySelectorAll('.dinheiro').forEach(function(input) {
+            if (input.value) {
+                input.value = formatDinheiro(input.value);
+            }
+        });
+
+        document.querySelector('form').addEventListener('submit', function() {
+            document.querySelectorAll('.dinheiro').forEach(function(input) {
+                var num = parseToNumber(input.value);
+                input.value = num.toFixed(2).replace('.', ',');
+            });
+        });
+
+        document.getElementById('btnAddRow').addEventListener('click', function() {
+            var tbody = document.querySelector('#cobrancasTable tbody');
+            var rows = tbody.querySelectorAll('tr.cobranca-row');
+            
+            // We need a template or clone a new row. Better to clone the last row, 
+            // clean it up, make it editable.
+            if(rows.length === 0) return;
+            
+            var lastRow = rows[rows.length - 1];
+            var newRow = lastRow.cloneNode(true);
+            
+            // clear classes 
+            newRow.className = "cobranca-row";
+            
+            var idInput = newRow.querySelector('.cob-id');
+            if(idInput) idInput.value = '0';
+            
+            var canceladaInput = newRow.querySelector('.cob-cancelada');
+            if(canceladaInput) canceladaInput.value = 'False';
+
+            var inputs = newRow.querySelectorAll('input:not([type=hidden])');
+            inputs.forEach(input => {
+                input.removeAttribute('readonly');
+                if (input.classList.contains('dinheiro')) {
+                    input.value = 'R$ 0,00';
+                }
+                else if(input.type === 'date') input.value = '';
+                else input.value = '';
+            });
+            var selects = newRow.querySelectorAll('select');
+            selects.forEach(select => { 
+                select.removeAttribute('readonly');
+                select.style.pointerEvents = 'auto';
+                select.selectedIndex = 0; 
+            });
+            
+            var actionsTd = newRow.querySelectorAll('td')[4];
+            if(actionsTd) {
+                actionsTd.innerHTML = '<button type="button" class="btn btn-sm btn-outline-danger" title="Remover" onclick="removeRow(this)">Remover</button>';
+            }
+            
+            tbody.appendChild(newRow);
+            reindexRows();
+        });
+
+        function removeRow(btn) {
+            var row = btn.closest('tr');
+            row.remove();
+            reindexRows();
+        }
+
+        function cancelarRow(btn) {
+            if(confirm("Tem certeza que deseja cancelar esta cobrança?")) {
+                var row = btn.closest('tr');
+                row.classList.add('opacity-50', 'text-decoration-line-through', 'bg-light');
+                var cancelInput = row.querySelector('.cob-cancelada');
+                if(cancelInput) cancelInput.value = 'True';
+                
+                var td = btn.closest('td');
+                td.innerHTML = '<span class="badge bg-secondary">Cancelada</span>';
+            }
+        }
+
+        function reindexRows() {
+            var rows = document.querySelectorAll('#cobrancasTable tbody tr.cobranca-row');
+            rows.forEach((row, index) => {
+                var elements = row.querySelectorAll('input, select');
+                elements.forEach(el => {
+                    if(el.name) {
+                        el.name = el.name.replace(/\[\d+\]/, '[' + index + ']');
+                    }
+                    if(el.id) {
+                        el.id = el.id.replace(/_\d+__/, '_' + index + '__');
+                    }
+                });
+            });
+        }
+    </script>
+}

@@ -1,0 +1,28 @@
+@page
+@model Key.Du.Pay.UserInterface.Pages.IndexModel
+@{
+    ViewData["Title"] = "Início";
+}
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h6 text-muted">Centros de custo</h2>
+                <p class="display-6">@(Model.CentroCustosVM?.Count ?? 0)</p>
+                <a class="btn btn-sm btn-outline-primary" asp-page="/CentroCusto/Index">Gerenciar</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h6 text-muted">Responsáveis</h2>
+                <p class="display-6">@(Model.ResponsavelFinanceiroVM?.Count ?? 0)</p>
+                <a class="btn btn-sm btn-outline-primary" asp-page="/ResponsavelFinanceiro/Index">Gerenciar</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12 mt-3">
+        <p class="text-muted small mb-0">Use o menu superior para cadastros, planos, cobranças e pagamentos. API REST documentada no Swagger em <code>/swagger</code>.</p>
+    </div>
+</div>
