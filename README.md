@@ -10,15 +10,31 @@ Aplicação .NET para gestão de planos de pagamento, cobranças e pagamentos (P
 ## Configuração do banco
 
 1. Crie um banco vazio no PostgreSQL.
-2. Ajuste a connection string em `Key.Du.Pay/appsettings.json` (ou `appsettings.Development.json`):
+2. Ajuste a connection string em `Key.Du.Pay/appsettings.json`:
 
 ```json
 "ConnectionStrings": {
   "DefaultConnection": "Host=localhost;Port=5432;Database=keydupay;Username=postgres;Password=sua_senha"
 }
 ```
+3. Defina Key.Du.Pay.UserInterface como projeto de inicialização.
 
-3. Aplicar migrations (na pasta da solução):
+
+3. Navegue em Ferramentas - > Gerenciador do Pacotes do Nuget - Console Gerenciador de Pacotes 
+<img src="https://i.postimg.cc/Dwv76f7W/2026-03-25-12-19-31-Key-Du-Pay-Key-Du-Pay-User-Interface-Microsoft-Visual-Studio.png">
+
+
+4. Aplicar migrations (Selecionando o Projeto Key.Du.Pay.DataAccess):
+```bash
+update-database
+```
+
+<img src="https://i.postimg.cc/hvN7xJkm/Update-D.png">
+
+
+
+## Outros modos, utilizando o dotnet ef global tool - SE INSTALADA.
+
 
 ```bash
 dotnet ef database update --project Key.Du.Pay.DataAccess --startup-project Key.Du.Pay
